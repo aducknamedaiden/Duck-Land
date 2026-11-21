@@ -1,11 +1,13 @@
 package com.example.domain.repository
 
+import com.example.domain.model.AppVersionConfig
 import com.example.domain.model.CoinClaim
 import com.example.domain.model.CollectorProfile
 import com.example.domain.model.DailyMissionProgress
 import com.example.domain.model.DuckPalette
 import com.example.domain.model.DuckSpecies
 import com.example.domain.model.EventEntry
+import com.example.domain.model.LeaderboardEntry
 import com.example.domain.model.MarketplaceListing
 import com.example.domain.model.PondNotification
 import com.example.domain.model.RubberDuck
@@ -22,6 +24,20 @@ interface CollectorRepository {
     fun observeMyDucks(userId: String): Flow<List<RubberDuck>>
     fun observeNotifications(userId: String): Flow<List<PondNotification>>
     fun observePendingClaims(userId: String): Flow<List<CoinClaim>>
+
+    fun observeVersionConfig(): Flow<AppVersionConfig?>
+    suspend fun ensureVersionConfigSeeded(currentVersionCode: Long, currentVersionName: String): Result<Unit>
+    fun observeLeaderboard(): Flow<List<LeaderboardEntry>>
+    suspend fun syncLeaderboardEntry(
+        userId: String,
+        displayName: String,
+        avatarConfig: DuckPalette,
+        duckCount: Long,
+        uniqueSpeciesCount: Long,
+        tradesCompleted: Long,
+        grapeBalance: Long,
+        isAdminAccount: Boolean
+    ): Result<Unit>
 
     suspend fun hatchDuck(
         userId: String,
@@ -180,6 +196,14 @@ interface OwnerRepository {
         activateImmediately: Boolean,
         existingEvents: List<WeeklyEvent>
     ): Result<String>
+
+    suspend fun adminUpdateVersionConfig(
+        minRequiredVersionCode: Long,
+        latestVersionCode: Long,
+        latestVersionName: String,
+        updateMessage: String,
+        storeUrl: String
+    ): Result<Unit>
 }
 
 interface DuckOracleRepository {

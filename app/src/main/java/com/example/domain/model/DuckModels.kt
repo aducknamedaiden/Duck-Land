@@ -90,7 +90,11 @@ object DuckTraitCatalog {
         TraitOption("sky_cloud", "Sky", 0xFF90D5FF),
         TraitOption("peach_cream", "Peach", 0xFFFFBE8F),
         TraitOption("pearl_white", "Pearl", 0xFFF5F7FA),
-        TraitOption("golden_glow", "Gold", 0xFFFFC107)
+        TraitOption("golden_glow", "Gold", 0xFFFFC107),
+        TraitOption("grape_crush", "Concord Grape", 0xFF7B2CBF),
+        TraitOption("teal_splash", "Teal", 0xFF2EC4B6),
+        TraitOption("rose_quartz", "Rose", 0xFFFF6B8B),
+        TraitOption("obsidian_night", "Midnight", 0xFF2D3142)
     )
 
     val billColors = listOf(
@@ -175,65 +179,168 @@ data class DuckSpecies(
 
 object DuckSpeciesCatalog {
     val all: List<DuckSpecies> = listOf(
+        // Original 12 species (with explicit modular DuckPalette parameters)
         DuckSpecies(
             "sunny_classic", "Sunny Classic", DuckRarity.COMMON,
             "A timeless cheerful bath-time legend who loves warm ripples.",
-            DuckPalette("sunny_yellow", "coral_orange", "none", "none", "none", "mint_mist")
+            DuckPalette(bodyColor = "sunny_yellow", billColor = "coral_orange", pondBg = "mint_mist")
         ),
         DuckSpecies(
             "mint_sprout", "Mint Sprout", DuckRarity.COMMON,
             "Freshly sprouted by the lily pads with a leafy tiny topper.",
-            DuckPalette("mint_foam", "butter_gold", "sprout", "none", "none", "mint_mist")
+            DuckPalette(bodyColor = "mint_foam", billColor = "butter_gold", hat = "sprout", pondBg = "mint_mist")
         ),
         DuckSpecies(
             "berry_pop", "Berry Pop", DuckRarity.COMMON,
             "Sweet pastel strawberry duckling with a dapper bowtie.",
-            DuckPalette("bubblegum", "butter_gold", "none", "none", "bowtie", "sunset_peach")
+            DuckPalette(bodyColor = "bubblegum", billColor = "butter_gold", accessory = "bowtie", pondBg = "sunset_peach")
         ),
         DuckSpecies(
             "sky_drifter", "Sky Drifter", DuckRarity.COMMON,
             "Floats carefree on sunny clouds with a cozy teal scarf.",
-            DuckPalette("sky_cloud", "coral_orange", "none", "none", "scarf", "mint_mist")
+            DuckPalette(bodyColor = "sky_cloud", billColor = "coral_orange", accessory = "scarf", pondBg = "mint_mist")
         ),
         DuckSpecies(
             "sailor_quack", "Captain Splash", DuckRarity.RARE,
             "Commands every paper boat across the pond with nautical flair.",
-            DuckPalette("pearl_white", "coral_orange", "sailor", "none", "scarf", "mint_mist")
+            DuckPalette(bodyColor = "pearl_white", billColor = "coral_orange", billStyle = "wide", wingStyle = "flappy", hat = "sailor", accessory = "scarf", pondBg = "mint_mist")
         ),
         DuckSpecies(
             "cool_breeze", "Breeze Shades", DuckRarity.RARE,
             "Always chill in signature teal shades and a bright pool ring.",
-            DuckPalette("sunny_yellow", "coral_orange", "none", "shades", "floatie", "sunset_peach")
+            DuckPalette(bodyColor = "sunny_yellow", billColor = "coral_orange", eyeStyle = "wink", eyewear = "shades", accessory = "floatie", pondBg = "sunset_peach")
         ),
         DuckSpecies(
             "lavender_scholar", "Professor Lilac", DuckRarity.RARE,
             "Reads pond poetry wearing tiny round glasses and a beanie.",
-            DuckPalette("lavender", "butter_gold", "beanie", "round", "bowtie", "lavender_dusk")
+            DuckPalette(bodyColor = "lavender", billColor = "butter_gold", hat = "beanie", eyewear = "round", accessory = "bowtie", pondBg = "lavender_dusk")
         ),
         DuckSpecies(
             "peach_champion", "Peach Medal", DuckRarity.EPIC,
             "Three-time synchronized splashing champion of the North Pond.",
-            DuckPalette("peach_cream", "rose_berry", "beanie", "shades", "medal", "sunset_peach")
+            DuckPalette(bodyColor = "peach_cream", billColor = "rose_berry", billStyle = "chirp", wingStyle = "flappy", hat = "beanie", eyewear = "shades", accessory = "medal", pondBg = "sunset_peach")
         ),
         DuckSpecies(
             "star_popstar", "Nova Quack", DuckRarity.EPIC,
             "Lights up twilight ripples with star specs and sparkling glow.",
-            DuckPalette("lavender", "mint_bill", "halo", "star", "bowtie", "starlight")
+            DuckPalette(bodyColor = "lavender", billColor = "mint_bill", billStyle = "chirp", wingStyle = "flappy", eyeStyle = "starry", hat = "halo", eyewear = "star", accessory = "bowtie", pondBg = "starlight")
         ),
         DuckSpecies(
             "sakura_float", "Sakura Lotus", DuckRarity.EPIC,
             "Graceful blossom traveler drifting beneath lantern light.",
-            DuckPalette("bubblegum", "coral_orange", "sprout", "round", "floatie", "sunset_peach")
+            DuckPalette(bodyColor = "bubblegum", billColor = "coral_orange", wingStyle = "angel", eyeStyle = "wink", hat = "sprout", eyewear = "round", accessory = "floatie", pondBg = "sunset_peach")
         ),
         DuckSpecies(
             "golden_monarch", "King Ducky", DuckRarity.LEGENDARY,
             "Ruler of Duck Land wearing the radiant Pond Crown and monocle.",
-            DuckPalette("golden_glow", "coral_orange", "crown", "monocle", "medal", "sunset_peach")
+            DuckPalette(bodyColor = "golden_glow", billColor = "coral_orange", billStyle = "wide", wingStyle = "angel", eyeStyle = "starry", hat = "crown", eyewear = "monocle", accessory = "medal", pondBg = "sunset_peach")
         ),
         DuckSpecies(
             "celestial_emperor", "Astral Oracle", DuckRarity.LEGENDARY,
             "Born under a shooting star, shimmering above the midnight pond.",
-            DuckPalette("pearl_white", "mint_bill", "halo", "star", "medal", "starlight")
+            DuckPalette(bodyColor = "pearl_white", billColor = "mint_bill", billStyle = "chirp", wingStyle = "angel", eyeStyle = "starry", hat = "halo", eyewear = "star", accessory = "medal", pondBg = "starlight")
+        ),
+
+        // 20 Brand-New Ducks!
+        DuckSpecies(
+            "grape_fizz", "Grape Soda", DuckRarity.COMMON,
+            "Fizzy Concord grape duckling who bubbles happily across the vineyard pond.",
+            DuckPalette(bodyColor = "grape_crush", billColor = "rose_berry", billStyle = "chirp", wingStyle = "flappy", accessory = "bowtie", pondBg = "grape_pond")
+        ),
+        DuckSpecies(
+            "lilac_napper", "Lilac Napper", DuckRarity.COMMON,
+            "Always ready for a cozy sunset nap in a fluffy pink beanie.",
+            DuckPalette(bodyColor = "lavender", billColor = "butter_gold", billStyle = "wide", eyeStyle = "wink", hat = "beanie", pondBg = "lavender_dusk")
+        ),
+        DuckSpecies(
+            "peach_bubbles", "Peach Bubbles", DuckRarity.COMMON,
+            "Bobs cheerfully in its favorite striped pool ring all afternoon.",
+            DuckPalette(bodyColor = "peach_cream", billColor = "coral_orange", wingStyle = "flappy", accessory = "floatie", pondBg = "sunset_peach")
+        ),
+        DuckSpecies(
+            "pearl_swimmer", "Pearl Diver", DuckRarity.COMMON,
+            "Glides sleekly through minty shallows with cool teal shades.",
+            DuckPalette(bodyColor = "pearl_white", billColor = "mint_bill", eyewear = "shades", pondBg = "mint_mist")
+        ),
+        DuckSpecies(
+            "buttercup_pip", "Buttercup Pip", DuckRarity.COMMON,
+            "Chirps hello to every butterfly while tending a tiny lily sprout.",
+            DuckPalette(bodyColor = "sunny_yellow", billColor = "butter_gold", billStyle = "chirp", eyeStyle = "starry", hat = "sprout", pondBg = "grape_pond")
+        ),
+        DuckSpecies(
+            "aqua_splash", "Aqua Splash", DuckRarity.COMMON,
+            "Zooms along pH-balanced currents wrapped in a cozy mint scarf.",
+            DuckPalette(bodyColor = "teal_splash", billColor = "coral_orange", billStyle = "wide", wingStyle = "flappy", accessory = "scarf", pondBg = "ph_pond")
+        ),
+        DuckSpecies(
+            "rosy_blossom", "Rosy Blossom", DuckRarity.COMMON,
+            "Blushing rose-quartz duckling dressed up in a coral bowtie.",
+            DuckPalette(bodyColor = "rose_quartz", billColor = "rose_berry", eyeStyle = "wink", accessory = "bowtie", pondBg = "sunset_peach")
+        ),
+        DuckSpecies(
+            "vineyard_sommelier", "Vineyard Baron", DuckRarity.RARE,
+            "Inspects only the finest Concord grape harvests with a golden monocle.",
+            DuckPalette(bodyColor = "grape_crush", billColor = "butter_gold", eyeStyle = "wink", eyewear = "monocle", accessory = "bowtie", pondBg = "grape_pond")
+        ),
+        DuckSpecies(
+            "ph_chemist", "Professor pH", DuckRarity.RARE,
+            "Measures litmus pond chemistry and keeps every ripple vibrant!",
+            DuckPalette(bodyColor = "mint_foam", billColor = "mint_bill", billStyle = "chirp", wingStyle = "flappy", eyeStyle = "starry", hat = "sprout", eyewear = "round", accessory = "medal", pondBg = "ph_pond")
+        ),
+        DuckSpecies(
+            "cloud_mariner", "Sky Mariner", DuckRarity.RARE,
+            "Sails sky-blue lagoons wearing crisp sailor stripes and shades.",
+            DuckPalette(bodyColor = "sky_cloud", billColor = "coral_orange", billStyle = "wide", hat = "sailor", eyewear = "shades", accessory = "scarf", pondBg = "mint_mist")
+        ),
+        DuckSpecies(
+            "sunset_surfer", "Sunset Surfer", DuckRarity.RARE,
+            "Rides golden evening ripples with a pool ring and fearless grin.",
+            DuckPalette(bodyColor = "peach_cream", billColor = "butter_gold", billStyle = "chirp", wingStyle = "flappy", eyeStyle = "wink", eyewear = "shades", accessory = "floatie", pondBg = "sunset_peach")
+        ),
+        DuckSpecies(
+            "berry_skater", "Berry Skater", DuckRarity.RARE,
+            "Tears up the pond boardwalk in a beanie, shades, and breezy scarf.",
+            DuckPalette(bodyColor = "bubblegum", billColor = "mint_bill", billStyle = "wide", wingStyle = "flappy", eyeStyle = "starry", hat = "beanie", eyewear = "shades", accessory = "scarf", pondBg = "ph_pond")
+        ),
+        DuckSpecies(
+            "gilded_swimmer", "Gilded Swimmer", DuckRarity.RARE,
+            "Glitters in the sun while lounging in luxury with a fancy monocle.",
+            DuckPalette(bodyColor = "golden_glow", billColor = "coral_orange", billStyle = "wide", eyewear = "monocle", accessory = "floatie", pondBg = "grape_pond")
+        ),
+        DuckSpecies(
+            "velvet_connoisseur", "Concord Duke", DuckRarity.EPIC,
+            "Grape Pond aristocracy with angelic wings and a gleaming crown.",
+            DuckPalette(bodyColor = "grape_crush", billColor = "butter_gold", wingStyle = "angel", eyeStyle = "wink", hat = "crown", eyewear = "monocle", accessory = "scarf", pondBg = "grape_pond")
+        ),
+        DuckSpecies(
+            "obsidian_dj", "Midnight DJ", DuckRarity.EPIC,
+            "Spins starry pond beats until dawn wearing superstar star specs.",
+            DuckPalette(bodyColor = "obsidian_night", billColor = "mint_bill", billStyle = "chirp", wingStyle = "flappy", eyeStyle = "starry", hat = "beanie", eyewear = "star", accessory = "medal", pondBg = "starlight")
+        ),
+        DuckSpecies(
+            "cloud_seraph", "Cloud Seraph", DuckRarity.EPIC,
+            "Floats softly above lilac dusk mists on feathery golden wings.",
+            DuckPalette(bodyColor = "pearl_white", billColor = "rose_berry", billStyle = "chirp", wingStyle = "angel", eyeStyle = "starry", hat = "halo", accessory = "scarf", pondBg = "lavender_dusk")
+        ),
+        DuckSpecies(
+            "litmus_alchemist", "Litmus Wizard", DuckRarity.EPIC,
+            "Brews rainbow pH potions that turn twilight water emerald and violet.",
+            DuckPalette(bodyColor = "teal_splash", billColor = "rose_berry", billStyle = "wide", wingStyle = "angel", eyeStyle = "starry", hat = "sprout", eyewear = "star", accessory = "medal", pondBg = "ph_pond")
+        ),
+        DuckSpecies(
+            "rose_duchess", "Rose Duchess", DuckRarity.EPIC,
+            "Hosts royal tea parties on rose petals wearing a tiny golden crown.",
+            DuckPalette(bodyColor = "rose_quartz", billColor = "butter_gold", wingStyle = "angel", eyeStyle = "wink", hat = "crown", eyewear = "round", accessory = "bowtie", pondBg = "sunset_peach")
+        ),
+        DuckSpecies(
+            "archduke_vineyard", "Grape Emperor", DuckRarity.LEGENDARY,
+            "Supreme guardian of the Grape Harvest with crowned angel wings.",
+            DuckPalette(bodyColor = "grape_crush", billColor = "butter_gold", billStyle = "wide", wingStyle = "angel", eyeStyle = "starry", hat = "crown", eyewear = "star", accessory = "medal", pondBg = "ph_pond")
+        ),
+        DuckSpecies(
+            "eclipse_phoenix", "Eclipse Phoenix", DuckRarity.LEGENDARY,
+            "Mythic midnight duckling crowned with a glowing starlight halo.",
+            DuckPalette(bodyColor = "obsidian_night", billColor = "coral_orange", billStyle = "chirp", wingStyle = "angel", eyeStyle = "starry", hat = "halo", eyewear = "monocle", accessory = "medal", pondBg = "starlight")
         )
     )
 
@@ -641,6 +748,33 @@ data class DailyMissionProgress(
     val isCompleted: Boolean
         get() = progress >= target
 }
+
+@Keep
+@IgnoreExtraProperties
+data class AppVersionConfig(
+    @DocumentId val id: String = "version",
+    val minRequiredVersionCode: Long = 3L,
+    val latestVersionCode: Long = 3L,
+    val latestVersionName: String = "1.2",
+    val updateMessage: String = "A newer version of Duck Land is ready with fresh ducks, collector rankings, and pond upgrades!",
+    val storeUrl: String = "",
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@Keep
+@IgnoreExtraProperties
+data class LeaderboardEntry(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val displayName: String = "",
+    val avatarConfig: Map<String, String> = DuckPalette.default().toMap(),
+    val duckCount: Long = 0L,
+    val uniqueSpeciesCount: Long = 0L,
+    val tradesCompleted: Long = 0L,
+    val grapeBalance: Long = 0L,
+    val isAdminAccount: Boolean = false,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
 
 sealed interface UiState<out T> {
     data object Loading : UiState<Nothing>

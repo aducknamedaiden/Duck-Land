@@ -134,19 +134,24 @@ fun PondScreen(
         val isSplitPane = widthClass == WindowWidthClass.EXPANDED
 
         if (inspectedDuck != null && !isSplitPane) {
+            val allDucks = (uiState as? UiState.Success)?.data?.ducks.orEmpty()
+            val liveInspected = allDucks.firstOrNull { it.id == inspectedDuck?.id } ?: inspectedDuck!!
+            val sameSpeciesDucks = allDucks.filter { it.speciesId == liveInspected.speciesId }
+                .ifEmpty { listOf(liveInspected) }
             BackHandler { inspectedDuck = null }
             DuckDetailDialog(
-                duck = inspectedDuck!!,
+                duck = liveInspected,
+                groupDucks = sameSpeciesDucks,
+                onSelectDuck = { inspectedDuck = it },
                 onDismiss = { inspectedDuck = null },
                 onRename = { newName ->
-                    onRenameDuck(inspectedDuck!!.id, newName)
+                    onRenameDuck(liveInspected.id, newName)
                     inspectedDuck = null
                 },
-                onListClick = { duckToList = inspectedDuck },
+                onListClick = { duckToList = liveInspected },
                 onAskOracleLore = {
-                    val target = inspectedDuck
                     inspectedDuck = null
-                    onOpenOracle(1, target)
+                    onOpenOracle(1, liveInspected)
                 }
             )
         }
@@ -178,8 +183,26 @@ fun PondScreen(
                     if (selectedRarityFilter == null) data.ducks
                     else data.ducks.filter { DuckRarity.fromId(it.rarity) == selectedRarityFilter }
                 }
+                val groupedDucks = remember(filteredDucks) {
+                    filteredDucks
+                        .groupBy { it.speciesId }
+                        .entries
+                        .map { (speciesId, copies) ->
+                            val representative = copies.firstOrNull { !it.listed } ?: copies.first()
+                            DuckSpeciesGroup(
+                                speciesId = speciesId,
+                                ducks = copies,
+                                primaryDuck = representative
+                            )
+                        }
+                }
                 val activeInspected = inspectedDuck?.let { current ->
                     data.ducks.firstOrNull { it.id == current.id }
+                }
+                val activeGroupDucks = remember(data.ducks, activeInspected) {
+                    if (activeInspected == null) emptyList()
+                    else data.ducks.filter { it.speciesId == activeInspected.speciesId }
+                        .ifEmpty { listOf(activeInspected) }
                 }
                 val unreadCount = data.notifications.count { !it.read }
                 val columns = when (widthClass) {
@@ -256,7 +279,11 @@ fun PondScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "My Flock (${filteredDucks.size})",
+                                        text = if (groupedDucks.size == filteredDucks.size) {
+                                            "My Flock (${filteredDucks.size})"
+                                        } else {
+                                            "My Flock (${filteredDucks.size} • ${groupedDucks.size} species)"
+                                        },
                                         style = MaterialTheme.typography.titleLarge
                                     )
                                 }
@@ -284,7 +311,7 @@ fun PondScreen(
                             }
                         }
 
-                        if (filteredDucks.isEmpty()) {
+                        if (groupedDucks.isEmpty()) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 EmptyPondCard(
                                     title = stringResource(R.string.empty_pond_title),
@@ -292,11 +319,16 @@ fun PondScreen(
                                 )
                             }
                         } else {
-                            items(filteredDucks, key = { it.id }) { duck ->
+                            items(groupedDucks, key = { it.speciesId }) { group ->
+                                val isGroupSelected = activeInspected != null &&
+                                    group.ducks.any { it.id == activeInspected.id }
+                                val displayDuck = if (isGroupSelected) activeInspected!! else group.primaryDuck
                                 DuckCollectionCard(
-                                    duck = duck,
-                                    selected = activeInspected?.id == duck.id,
-                                    onClick = { inspectedDuck = duck }
+                                    duck = displayDuck,
+                                    duplicateCount = group.ducks.size,
+                                    listedCount = group.ducks.count { it.listed },
+                                    selected = isGroupSelected,
+                                    onClick = { inspectedDuck = group.primaryDuck }
                                 )
                             }
                         }
@@ -313,6 +345,8 @@ fun PondScreen(
                             ) {
                                 DuckDetailPane(
                                     duck = activeInspected,
+                                    groupDucks = activeGroupDucks,
+                                    onSelectDuck = { inspectedDuck = it },
                                     onClose = { inspectedDuck = null },
                                     onRename = { newName -> onRenameDuck(activeInspected.id, newName) },
                                     onListClick = { duckToList = activeInspected },
@@ -730,9 +764,17 @@ private fun DailyMissionRow(
     }
 }
 
+private data class DuckSpeciesGroup(
+    val speciesId: String,
+    val ducks: List<RubberDuck>,
+    val primaryDuck: RubberDuck
+)
+
 @Composable
 private fun DuckCollectionCard(
     duck: RubberDuck,
+    duplicateCount: Int,
+    listedCount: Int,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -743,7 +785,7 @@ private fun DuckCollectionCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("duck_card_${duck.id}")
+            .testTag("duck_card_${duck.speciesId}")
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -755,7 +797,26 @@ private fun DuckCollectionCard(
                     size = 112.dp,
                     cornerRadius = 18.dp
                 )
-                if (duck.listed) {
+                if (duplicateCount > 1) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primary,
+                        shadowElevation = 2.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp)
+                            .testTag("dupe_badge_${duck.speciesId}")
+                    ) {
+                        Text(
+                            text = "[$duplicateCount]",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                if (listedCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.tertiary,
@@ -764,7 +825,7 @@ private fun DuckCollectionCard(
                             .padding(4.dp)
                     ) {
                         Text(
-                            text = "Listed",
+                            text = if (listedCount > 1) "$listedCount Listed" else "Listed",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -787,7 +848,7 @@ private fun DuckCollectionCard(
             ) {
                 RarityBadge(rarity = rarity)
                 Text(
-                    text = "#${duck.serialNumber}",
+                    text = if (duplicateCount > 1) "#${duck.serialNumber} • [$duplicateCount]" else "#${duck.serialNumber}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -799,6 +860,8 @@ private fun DuckCollectionCard(
 @Composable
 private fun DuckDetailDialog(
     duck: RubberDuck,
+    groupDucks: List<RubberDuck>,
+    onSelectDuck: (RubberDuck) -> Unit,
     onDismiss: () -> Unit,
     onRename: (String) -> Unit,
     onListClick: () -> Unit,
@@ -810,6 +873,8 @@ private fun DuckDetailDialog(
         text = {
             DuckDetailPane(
                 duck = duck,
+                groupDucks = groupDucks,
+                onSelectDuck = onSelectDuck,
                 onClose = onDismiss,
                 onRename = onRename,
                 onListClick = onListClick,
@@ -822,6 +887,8 @@ private fun DuckDetailDialog(
 @Composable
 private fun DuckDetailPane(
     duck: RubberDuck,
+    groupDucks: List<RubberDuck>,
+    onSelectDuck: (RubberDuck) -> Unit,
     onClose: () -> Unit,
     onRename: (String) -> Unit,
     onListClick: () -> Unit,
@@ -855,6 +922,33 @@ private fun DuckDetailPane(
             size = 160.dp,
             cornerRadius = 28.dp
         )
+
+        if (groupDucks.size > 1) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Duplicate Copies [${groupDucks.size}]",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(groupDucks, key = { it.id }) { copy ->
+                        FilterChip(
+                            selected = copy.id == duck.id,
+                            onClick = { onSelectDuck(copy) },
+                            label = {
+                                Text(
+                                    text = if (copy.listed) "#${copy.serialNumber} (Listed)" else "#${copy.serialNumber}"
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
         if (editingName) {
             Row(

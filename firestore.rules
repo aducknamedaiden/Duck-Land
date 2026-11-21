@@ -211,6 +211,27 @@ service cloud.firestore {
               (data.missionId == 'cheer_event' && data.target == 1 && data.rewardCoins == 50));
     }
 
+    function isValidVersionConfig(data) {
+      return data.minRequiredVersionCode is int && data.minRequiredVersionCode >= 1 && data.minRequiredVersionCode <= 1000000 &&
+             data.latestVersionCode is int && data.latestVersionCode >= data.minRequiredVersionCode && data.latestVersionCode <= 1000000 &&
+             data.latestVersionName is string && data.latestVersionName.size() >= 1 && data.latestVersionName.size() <= 20 &&
+             data.updateMessage is string && data.updateMessage.size() >= 1 && data.updateMessage.size() <= 240 &&
+             data.storeUrl is string && data.storeUrl.size() <= 250 &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 40 &&
+             isValidPaletteMap(data.avatarConfig) &&
+             data.duckCount is int && data.duckCount >= 0 && data.duckCount <= 10000 &&
+             data.uniqueSpeciesCount is int && data.uniqueSpeciesCount >= 0 && data.uniqueSpeciesCount <= 1000 &&
+             data.tradesCompleted is int && data.tradesCompleted >= 0 && data.tradesCompleted <= 1000000 &&
+             data.grapeBalance is int && data.grapeBalance >= 0 && data.grapeBalance <= 100000000 &&
+             data.isAdminAccount is bool &&
+             isValidTimestamp(data.updatedAt);
+    }
+
     // --- COLLECTION RULES ---
 
     // Owner/Admin registry: unlocked strictly with the secret owner code *OWNERDUCK#1*
@@ -227,6 +248,43 @@ service cloud.firestore {
                        isValidTimestamp(incoming().grantedAt);
 
       allow update, delete: if false;
+    }
+
+    // Remote app version gate configuration for mandatory updates
+    match /app_config/{configId} {
+      allow get: if isSignedIn() && isValidId(configId);
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       configId == 'version' &&
+                       isValidVersionConfig(incoming()) &&
+                       incoming().keys().hasAll(['minRequiredVersionCode', 'latestVersionCode', 'latestVersionName', 'updateMessage', 'storeUrl', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['minRequiredVersionCode', 'latestVersionCode', 'latestVersionName', 'updateMessage', 'storeUrl', 'updatedAt']) &&
+                       (isAdmin() || (incoming().minRequiredVersionCode == 3 && incoming().latestVersionCode == 3 && incoming().latestVersionName == '1.2'));
+
+      allow update: if isAdmin() &&
+                       configId == 'version' &&
+                       isValidVersionConfig(incoming()) &&
+                       incoming().keys().hasAll(['minRequiredVersionCode', 'latestVersionCode', 'latestVersionName', 'updateMessage', 'storeUrl', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['minRequiredVersionCode', 'latestVersionCode', 'latestVersionName', 'updateMessage', 'storeUrl', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    // Public collector leaderboard excluding Owner/Admin accounts
+    match /leaderboard/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (resource.data.isAdminAccount == false || isOwner(userId));
+      allow list: if isSignedIn() && resource.data.isAdminAccount == false;
+
+      allow create, update: if isOwner(userId) &&
+                               isValidId(userId) &&
+                               isValidLeaderboardEntry(incoming()) &&
+                               incoming().userId == userId &&
+                               incoming().isAdminAccount == isAdmin() &&
+                               incoming().keys().hasAll(['userId', 'displayName', 'avatarConfig', 'duckCount', 'uniqueSpeciesCount', 'tradesCompleted', 'grapeBalance', 'isAdminAccount', 'updatedAt']) &&
+                               incoming().keys().hasOnly(['userId', 'displayName', 'avatarConfig', 'duckCount', 'uniqueSpeciesCount', 'tradesCompleted', 'grapeBalance', 'isAdminAccount', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
     }
 
     match /users/{userId} {

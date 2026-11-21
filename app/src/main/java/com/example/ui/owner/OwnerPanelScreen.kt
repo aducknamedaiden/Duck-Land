@@ -63,6 +63,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.BuildConfig
+import com.example.domain.model.AppVersionConfig
 import com.example.domain.model.CollectorProfile
 import com.example.domain.model.DuckPalette
 import com.example.domain.model.DuckRarity
@@ -81,6 +83,7 @@ fun OwnerPanelScreen(
     currentUserId: String,
     collectors: List<CollectorProfile>,
     events: List<WeeklyEvent>,
+    versionConfig: AppVersionConfig?,
     isBusy: Boolean,
     onGrantDuck: (String, DuckSpecies, String, DuckRarity, DuckPalette) -> Unit,
     onGrantCoins: (String, Long, Boolean) -> Unit,
@@ -89,6 +92,7 @@ fun OwnerPanelScreen(
     onSendAnnouncement: (List<String>, String, String) -> Unit,
     onActivateEvent: (String) -> Unit,
     onCreateEvent: (String, String, String, String, Long, Boolean) -> Unit,
+    onUpdateVersionConfig: (Long, Long, String, String, String) -> Unit,
     onClose: () -> Unit
 ) {
     BackHandler { onClose() }
@@ -101,7 +105,7 @@ fun OwnerPanelScreen(
         )
     }
     var selectedSection by remember { mutableIntStateOf(0) }
-    val sections = listOf("Duck Spawner", "Grape Mint", "Moderation & Alerts", "Weekly Events")
+    val sections = listOf("Duck Spawner", "Grape Mint", "Moderation & Alerts", "Weekly Events", "App Version")
 
     val selectedTarget = collectors.firstOrNull { it.userId == selectedTargetUid }
 
@@ -194,6 +198,14 @@ fun OwnerPanelScreen(
                             isBusy = isBusy,
                             onActivateEvent = onActivateEvent,
                             onCreateEvent = onCreateEvent
+                        )
+                    }
+
+                    4 -> item {
+                        OwnerVersionControlCard(
+                            versionConfig = versionConfig,
+                            isBusy = isBusy,
+                            onUpdateVersionConfig = onUpdateVersionConfig
                         )
                     }
                 }
@@ -849,6 +861,107 @@ private fun OwnerEventsConsoleCard(
                 ) {
                     Text("Publish Weekly Event")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerVersionControlCard(
+    versionConfig: AppVersionConfig?,
+    isBusy: Boolean,
+    onUpdateVersionConfig: (Long, Long, String, String, String) -> Unit
+) {
+    var minCodeText by remember(versionConfig) {
+        mutableStateOf((versionConfig?.minRequiredVersionCode ?: BuildConfig.VERSION_CODE.toLong()).toString())
+    }
+    var latestCodeText by remember(versionConfig) {
+        mutableStateOf((versionConfig?.latestVersionCode ?: BuildConfig.VERSION_CODE.toLong()).toString())
+    }
+    var latestNameText by remember(versionConfig) {
+        mutableStateOf(versionConfig?.latestVersionName ?: BuildConfig.VERSION_NAME)
+    }
+    var updateMessage by remember(versionConfig) {
+        mutableStateOf(
+            versionConfig?.updateMessage
+                ?: "A fresh Duck Land update is available! Please update to keep splashing with the flock."
+        )
+    }
+    var storeUrl by remember(versionConfig) {
+        mutableStateOf(versionConfig?.storeUrl ?: "")
+    }
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Remote Mandatory Update Gate", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "App Build: v${BuildConfig.VERSION_NAME} (Code ${BuildConfig.VERSION_CODE}). Collectors below Min Required Code see a mandatory update prompt.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = minCodeText,
+                    onValueChange = { if (it.all(Char::isDigit) && it.length <= 6) minCodeText = it },
+                    label = { Text("Min Required Code") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = latestCodeText,
+                    onValueChange = { if (it.all(Char::isDigit) && it.length <= 6) latestCodeText = it },
+                    label = { Text("Latest Code") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            OutlinedTextField(
+                value = latestNameText,
+                onValueChange = { if (it.length <= 20) latestNameText = it },
+                label = { Text("Latest Version Name (e.g. 1.2)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = updateMessage,
+                onValueChange = { if (it.length <= 240) updateMessage = it },
+                label = { Text("Update Prompt Message") },
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = storeUrl,
+                onValueChange = { if (it.length <= 250) storeUrl = it },
+                label = { Text("Optional Play Store URL") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    val minCode = minCodeText.toLongOrNull()?.coerceAtLeast(1L) ?: BuildConfig.VERSION_CODE.toLong()
+                    val latestCode = latestCodeText.toLongOrNull()?.coerceAtLeast(minCode) ?: minCode
+                    onUpdateVersionConfig(minCode, latestCode, latestNameText, updateMessage, storeUrl)
+                },
+                enabled = !isBusy && latestNameText.isNotBlank() && updateMessage.isNotBlank(),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("owner_save_version_config_button")
+            ) {
+                Text("Save Remote Version Gate")
             }
         }
     }

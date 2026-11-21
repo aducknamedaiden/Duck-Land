@@ -2,11 +2,13 @@ package com.example.data.firestore
 
 import android.content.Context
 import com.example.R
+import com.example.domain.model.AppVersionConfig
 import com.example.domain.model.CoinClaim
 import com.example.domain.model.CollectorProfile
 import com.example.domain.model.DuckPalette
 import com.example.domain.model.DuckSpecies
 import com.example.domain.model.DuckSpeciesCatalog
+import com.example.domain.model.LeaderboardEntry
 import com.example.domain.model.PondNotification
 import com.example.domain.model.RubberDuck
 import com.example.domain.model.Wallet
@@ -289,6 +291,125 @@ class FirestoreCollectorRepository(
                     throw error
                 }
         )
+    }
+
+    override fun observeVersionConfig(): Flow<AppVersionConfig?> = flow {
+        if (auth.currentUser?.uid.isNullOrBlank()) {
+            emit(null)
+            return@flow
+        }
+        val path = "app_config/version"
+        emitAll(
+            db.collection("app_config").document("version")
+                .snapshots()
+                .map { it.toObject(AppVersionConfig::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE) }
+                .catch { error ->
+                    val root = unwrapFirestoreError(error)
+                    if (auth.currentUser != null) {
+                        handleFirestoreError(root, OperationType.GET, path)
+                    }
+                    emit(null)
+                }
+        )
+    }
+
+    override suspend fun ensureVersionConfigSeeded(
+        currentVersionCode: Long,
+        currentVersionName: String
+    ): Result<Unit> {
+        val path = "app_config/version"
+        return try {
+            requireUserId()
+            val ref = db.collection("app_config").document("version")
+            val snap = ref.get().await()
+            if (!snap.exists()) {
+                val safeCode = currentVersionCode.coerceAtLeast(3L)
+                val safeName = currentVersionName.trim().ifBlank { "1.2" }.take(20)
+                ref.set(
+                    mapOf(
+                        "minRequiredVersionCode" to safeCode,
+                        "latestVersionCode" to safeCode,
+                        "latestVersionName" to safeName,
+                        "updateMessage" to "A fresh Duck Land update is available! Please update to keep splashing with the flock.",
+                        "storeUrl" to "",
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
+            }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, path)
+            Result.failure(e)
+        }
+    }
+
+    override fun observeLeaderboard(): Flow<List<LeaderboardEntry>> = flow {
+        if (auth.currentUser?.uid.isNullOrBlank()) {
+            emit(emptyList())
+            return@flow
+        }
+        val path = "leaderboard"
+        emitAll(
+            db.collection(path)
+                .whereEqualTo("isAdminAccount", false)
+                .limit(100)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(LeaderboardEntry::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
+                        .filter { !it.isAdminAccount }
+                        .sortedWith(
+                            compareByDescending<LeaderboardEntry> { it.duckCount }
+                                .thenByDescending { it.uniqueSpeciesCount }
+                                .thenByDescending { it.tradesCompleted }
+                                .thenByDescending { it.grapeBalance }
+                        )
+                }
+                .catch { error ->
+                    val root = unwrapFirestoreError(error)
+                    if (auth.currentUser != null) {
+                        handleFirestoreError(root, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    override suspend fun syncLeaderboardEntry(
+        userId: String,
+        displayName: String,
+        avatarConfig: DuckPalette,
+        duckCount: Long,
+        uniqueSpeciesCount: Long,
+        tradesCompleted: Long,
+        grapeBalance: Long,
+        isAdminAccount: Boolean
+    ): Result<Unit> {
+        val path = "leaderboard/$userId"
+        return try {
+            val uid = requireUserId(userId)
+            val safeName = displayName.trim().ifBlank { "Pond Collector" }.take(40)
+            db.collection("leaderboard").document(uid).set(
+                mapOf(
+                    "userId" to uid,
+                    "displayName" to safeName,
+                    "avatarConfig" to avatarConfig.toMap(),
+                    "duckCount" to duckCount.coerceIn(0L, 10000L),
+                    "uniqueSpeciesCount" to uniqueSpeciesCount.coerceIn(0L, 1000L),
+                    "tradesCompleted" to tradesCompleted.coerceIn(0L, 1000000L),
+                    "grapeBalance" to grapeBalance.coerceIn(0L, 100000000L),
+                    "isAdminAccount" to isAdminAccount,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, path)
+            Result.failure(e)
+        }
     }
 
     override suspend fun hatchDuck(

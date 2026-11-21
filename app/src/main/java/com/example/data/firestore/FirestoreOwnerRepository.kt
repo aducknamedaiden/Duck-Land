@@ -147,6 +147,12 @@ class FirestoreOwnerRepository(
                             )
                         ).await()
                     }
+                    runCatching {
+                        val lbRef = db.collection("leaderboard").document(uid)
+                        if (lbRef.get().await().exists()) {
+                            lbRef.delete().await()
+                        }
+                    }
                     Result.success(PromoReward.OwnerUnlockReward)
                 }
 
@@ -500,6 +506,43 @@ class FirestoreOwnerRepository(
             throw e
         } catch (e: Exception) {
             handleFirestoreError(e, OperationType.CREATE, path)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun adminUpdateVersionConfig(
+        minRequiredVersionCode: Long,
+        latestVersionCode: Long,
+        latestVersionName: String,
+        updateMessage: String,
+        storeUrl: String
+    ): Result<Unit> {
+        val path = "app_config/version"
+        return try {
+            requireUserId()
+            val safeMin = minRequiredVersionCode.coerceIn(1L, 1_000_000L)
+            val safeLatest = latestVersionCode.coerceIn(safeMin, 1_000_000L)
+            val safeName = latestVersionName.trim().ifBlank { "1.2" }.take(20)
+            val safeMsg = updateMessage.trim()
+                .ifBlank { "Please update Duck Land to the latest version to keep playing." }
+                .take(240)
+            val safeUrl = storeUrl.trim().take(250)
+
+            db.collection("app_config").document("version").set(
+                mapOf(
+                    "minRequiredVersionCode" to safeMin,
+                    "latestVersionCode" to safeLatest,
+                    "latestVersionName" to safeName,
+                    "updateMessage" to safeMsg,
+                    "storeUrl" to safeUrl,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, path)
             Result.failure(e)
         }
     }

@@ -6,6 +6,7 @@
     <string name="nav_pond">Pond</string>
     <string name="nav_market">Market</string>
     <string name="nav_events">Showcase</string>
+    <string name="nav_ranks">Ranks</string>
     <string name="nav_studio">Studio</string>
     <string name="channel_trades_name">Trade &amp; Market Alerts</string>
     <string name="channel_trades_desc">Instant alerts when collectors send, accept, or complete duck trades.</string>

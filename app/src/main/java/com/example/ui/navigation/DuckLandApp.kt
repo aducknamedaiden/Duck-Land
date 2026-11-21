@@ -1,6 +1,8 @@
 package com.example.ui.navigation
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,11 +27,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Celebration
 import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Water
 import androidx.compose.material.icons.rounded.Celebration
 import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.Leaderboard
 import androidx.compose.material.icons.rounded.Storefront
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Water
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -80,8 +85,10 @@ import androidx.compose.material.icons.rounded.Block
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import com.example.BuildConfig
 import com.example.R
 import com.example.data.ai.FirebaseDuckOracleRepository
 import com.example.data.firestore.FirestoreCollectorRepository
@@ -90,6 +97,7 @@ import com.example.data.firestore.FirestoreMarketplaceRepository
 import com.example.data.firestore.FirestoreMissionRepository
 import com.example.data.firestore.FirestoreOwnerRepository
 import com.example.data.preferences.ThemePreferencesRepository
+import com.example.domain.model.AppVersionConfig
 import com.example.domain.model.PondNotification
 import com.example.domain.model.UiState
 import com.example.notifications.PondNotificationManager
@@ -101,6 +109,8 @@ import com.example.ui.components.GrapeAppBackground
 import com.example.ui.components.WindowWidthClass
 import com.example.ui.events.EventsScreen
 import com.example.ui.events.EventsViewModel
+import com.example.ui.leaderboard.LeaderboardScreen
+import com.example.ui.leaderboard.LeaderboardViewModel
 import com.example.ui.market.MarketplaceScreen
 import com.example.ui.market.MarketplaceViewModel
 import com.example.ui.owner.ChangingToOwnerScreen
@@ -125,6 +135,7 @@ private enum class DuckLandDestination(
     POND("pond", R.string.nav_pond, Icons.Rounded.Water, Icons.Outlined.Water),
     MARKET("market", R.string.nav_market, Icons.Rounded.Storefront, Icons.Outlined.Storefront),
     EVENTS("events", R.string.nav_events, Icons.Rounded.Celebration, Icons.Outlined.Celebration),
+    RANKS("ranks", R.string.nav_ranks, Icons.Rounded.Leaderboard, Icons.Outlined.Leaderboard),
     STUDIO("studio", R.string.nav_studio, Icons.Rounded.Face, Icons.Outlined.Face)
 }
 
@@ -185,6 +196,7 @@ private fun DuckLandAuthenticatedShell(
                     marketplaceRepository = FirestoreMarketplaceRepository(db),
                     eventRepository = FirestoreEventRepository(db),
                     missionRepository = FirestoreMissionRepository(db),
+                    ownerRepository = FirestoreOwnerRepository(db),
                     preferencesRepository = preferencesRepository,
                     notificationManager = notificationManager
                 )
@@ -219,6 +231,19 @@ private fun DuckLandAuthenticatedShell(
                     collectorRepository = FirestoreCollectorRepository(db),
                     eventRepository = FirestoreEventRepository(db),
                     missionRepository = FirestoreMissionRepository(db)
+                )
+            }
+        }
+    )
+
+    val leaderboardViewModel: LeaderboardViewModel = viewModel(
+        key = "leaderboard_$currentUserId",
+        factory = viewModelFactory {
+            initializer {
+                val app = checkNotNull(this[APPLICATION_KEY])
+                val db = FirebaseFirestore.getInstance(app.getString(R.string.firestore_database_id))
+                LeaderboardViewModel(
+                    collectorRepository = FirestoreCollectorRepository(db)
                 )
             }
         }
@@ -267,6 +292,8 @@ private fun DuckLandAuthenticatedShell(
     val pondBusy by pondViewModel.isBusy.collectAsStateWithLifecycle()
     val pondMessage by pondViewModel.actionMessage.collectAsStateWithLifecycle()
     val hatchedDuck by pondViewModel.hatchedDuck.collectAsStateWithLifecycle()
+    val remoteVersionConfig by pondViewModel.versionConfig.collectAsStateWithLifecycle()
+    val mandatoryUpdateConfig by pondViewModel.mandatoryUpdateConfig.collectAsStateWithLifecycle()
 
     val marketState by marketViewModel.uiState.collectAsStateWithLifecycle()
     val marketBusy by marketViewModel.isBusy.collectAsStateWithLifecycle()
@@ -275,6 +302,9 @@ private fun DuckLandAuthenticatedShell(
     val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
     val eventsBusy by eventsViewModel.isBusy.collectAsStateWithLifecycle()
     val eventsMessage by eventsViewModel.actionMessage.collectAsStateWithLifecycle()
+
+    val leaderboardState by leaderboardViewModel.uiState.collectAsStateWithLifecycle()
+    val leaderboardSort by leaderboardViewModel.selectedSort.collectAsStateWithLifecycle()
 
     val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
     val profileBusy by profileViewModel.isBusy.collectAsStateWithLifecycle()
@@ -352,6 +382,29 @@ private fun DuckLandAuthenticatedShell(
                 notificationManager.resetSession()
                 signOut(credentialManager, scope)
             }
+        )
+        return
+    }
+
+    val requiredUpdate = mandatoryUpdateConfig
+    if (requiredUpdate != null && !(isOwner && showOwnerPanel)) {
+        MandatoryUpdateScreen(
+            config = requiredUpdate,
+            isOwner = isOwner,
+            onOpenStore = {
+                val targetUrl = requiredUpdate.storeUrl.ifBlank {
+                    "market://details?id=${context.packageName}"
+                }
+                val fallbackUrl = "https://play.google.com/store/apps/details?id=${context.packageName}"
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)))
+                }.onFailure {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl)))
+                    }
+                }
+            },
+            onOpenOwnerConsole = { ownerViewModel.openOwnerPanel() }
         )
         return
     }
@@ -544,6 +597,16 @@ private fun DuckLandAuthenticatedShell(
                             )
                         }
 
+                        composable(DuckLandDestination.RANKS.route) {
+                            LeaderboardScreen(
+                                currentUserId = currentUserId,
+                                isOwner = isOwner,
+                                selectedSort = leaderboardSort,
+                                uiState = leaderboardState,
+                                onSelectSort = { leaderboardViewModel.selectSort(it) }
+                            )
+                        }
+
                         composable(DuckLandDestination.STUDIO.route) {
                             ProfileAvatarScreen(
                                 uiState = profileState,
@@ -615,6 +678,7 @@ private fun DuckLandAuthenticatedShell(
                 currentUserId = currentUserId,
                 collectors = allCollectors,
                 events = ownerEvents,
+                versionConfig = remoteVersionConfig,
                 isBusy = ownerBusy,
                 onGrantDuck = { targetUid, species, name, rarity, palette ->
                     ownerViewModel.grantDuck(targetUid, species, name, rarity, palette)
@@ -637,6 +701,9 @@ private fun DuckLandAuthenticatedShell(
                 onCreateEvent = { title, tag, desc, bonus, week, activeNow ->
                     ownerViewModel.createEvent(title, tag, desc, bonus, week, activeNow)
                 },
+                onUpdateVersionConfig = { minCode, latestCode, latestName, msg, url ->
+                    ownerViewModel.updateVersionConfig(minCode, latestCode, latestName, msg, url)
+                },
                 onClose = { ownerViewModel.closeOwnerPanel() }
             )
         }
@@ -646,6 +713,87 @@ private fun DuckLandAuthenticatedShell(
                 onFinished = { ownerViewModel.finishChangingToOwnerTransition() }
             )
         }
+        }
+    }
+}
+
+@Composable
+private fun MandatoryUpdateScreen(
+    config: AppVersionConfig,
+    isOwner: Boolean,
+    onOpenStore: () -> Unit,
+    onOpenOwnerConsole: () -> Unit
+) {
+    GrapeAppBackground {
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .testTag("mandatory_update_screen")
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.widthIn(max = 440.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.SystemUpdate,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Text(
+                            text = "Pond Update Required",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Installed: v${BuildConfig.VERSION_NAME} (Code ${BuildConfig.VERSION_CODE}) • Required: v${config.latestVersionName} (Code ${config.minRequiredVersionCode}+)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = config.updateMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = onOpenStore,
+                            shape = RoundedCornerShape(50),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("mandatory_update_store_button")
+                        ) {
+                            Text("Update Duck Land")
+                        }
+                        if (isOwner) {
+                            OutlinedButton(
+                                onClick = onOpenOwnerConsole,
+                                shape = RoundedCornerShape(50),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("mandatory_update_owner_override")
+                            ) {
+                                Text("Owner Version Override")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

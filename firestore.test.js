@@ -887,3 +887,127 @@ test("Daily missions persistence, anti-forge validation, and atomic Grape reward
   await assertFails(doubleClaim.commit());
 });
 
+test("Remote version config check and Leaderboard excluding admin-panel accounts", async () => {
+  const alice = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bob = testEnv.authenticatedContext(BOB_UID).firestore();
+  const now = ts(-4000);
+
+  // 1. Non-admin cannot forge a mandatory update version config (>3)
+  await assertFails(
+    bob.collection("app_config").doc("version").set({
+      minRequiredVersionCode: 99,
+      latestVersionCode: 99,
+      latestVersionName: "9.9",
+      updateMessage: "Hacked update",
+      storeUrl: "",
+      updatedAt: now,
+    })
+  );
+
+  // 2. Signed-in user can seed default version 3 (1.2)
+  await assertSucceeds(
+    bob.collection("app_config").doc("version").set({
+      minRequiredVersionCode: 3,
+      latestVersionCode: 3,
+      latestVersionName: "1.2",
+      updateMessage: "Welcome to Duck Land 1.2!",
+      storeUrl: "",
+      updatedAt: now,
+    })
+  );
+  await assertSucceeds(bob.collection("app_config").doc("version").get());
+
+  // 3. Non-admin cannot update app_config/version; Owner can bump mandatory version
+  await assertFails(
+    bob.collection("app_config").doc("version").update({
+      minRequiredVersionCode: 4,
+      latestVersionCode: 4,
+      latestVersionName: "1.3",
+      updateMessage: "Mandatory update",
+      storeUrl: "",
+      updatedAt: ts(-1000),
+    })
+  );
+  await assertSucceeds(
+    alice.collection("admins").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      ownerCode: "*OWNERDUCK#1*",
+      grantedAt: ts(-2000),
+    })
+  );
+  await assertSucceeds(
+    alice.collection("app_config").doc("version").update({
+      minRequiredVersionCode: 4,
+      latestVersionCode: 4,
+      latestVersionName: "1.3",
+      updateMessage: "Mandatory update required!",
+      storeUrl: "",
+      updatedAt: ts(-1000),
+    })
+  );
+
+  // 4. Leaderboard: Bob (non-admin, even with gifted coins) must have isAdminAccount=false
+  await assertFails(
+    bob.collection("leaderboard").doc(BOB_UID).set({
+      userId: BOB_UID,
+      displayName: "Bob Duck",
+      avatarConfig: validPalette(),
+      duckCount: 12,
+      uniqueSpeciesCount: 8,
+      tradesCompleted: 3,
+      grapeBalance: 50000,
+      isAdminAccount: true, // Bob cannot claim to be admin
+      updatedAt: now,
+    })
+  );
+  await assertSucceeds(
+    bob.collection("leaderboard").doc(BOB_UID).set({
+      userId: BOB_UID,
+      displayName: "Bob Duck",
+      avatarConfig: validPalette(),
+      duckCount: 12,
+      uniqueSpeciesCount: 8,
+      tradesCompleted: 3,
+      grapeBalance: 50000, // gifted coins from admin still allowed on leaderboard
+      isAdminAccount: false,
+      updatedAt: now,
+    })
+  );
+
+  // 5. Alice (admin account) CANNOT spoof isAdminAccount=false to appear on leaderboard
+  await assertFails(
+    alice.collection("leaderboard").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Owner Alice",
+      avatarConfig: validPalette(),
+      duckCount: 99,
+      uniqueSpeciesCount: 32,
+      tradesCompleted: 0,
+      grapeBalance: 1000000,
+      isAdminAccount: false,
+      updatedAt: now,
+    })
+  );
+  await assertSucceeds(
+    alice.collection("leaderboard").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Owner Alice",
+      avatarConfig: validPalette(),
+      duckCount: 99,
+      uniqueSpeciesCount: 32,
+      tradesCompleted: 0,
+      grapeBalance: 1000000,
+      isAdminAccount: true,
+      updatedAt: now,
+    })
+  );
+
+  // 6. Querying non-admin leaderboard entries succeeds and returns only Bob (not Alice)
+  const snap = await assertSucceeds(
+    bob.collection("leaderboard").where("isAdminAccount", "==", false).get()
+  );
+  if (snap.docs.length !== 1 || snap.docs[0].id !== BOB_UID) {
+    throw new Error(`Expected only Bob on leaderboard, got ${snap.docs.map((d) => d.id)}`);
+  }
+});
+

@@ -3,11 +3,14 @@ package com.example.ui.pond
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.BuildConfig
 import com.example.data.firestore.unwrapFirestoreError
+import com.example.domain.model.AppVersionConfig
 import com.example.domain.model.CoinClaim
 import com.example.domain.model.CollectorProfile
 import com.example.domain.model.DailyMissionCatalog
 import com.example.domain.model.DailyMissionProgress
+import com.example.domain.model.DuckPalette
 import com.example.domain.model.PondNotification
 import com.example.domain.model.RubberDuck
 import com.example.domain.model.UiState
@@ -16,6 +19,7 @@ import com.example.domain.repository.CollectorRepository
 import com.example.domain.repository.EventRepository
 import com.example.domain.repository.MarketplaceRepository
 import com.example.domain.repository.MissionRepository
+import com.example.domain.repository.OwnerRepository
 import com.example.domain.repository.PreferencesRepository
 import com.example.domain.usecase.HatchDuckUseCase
 import com.example.notifications.PondNotificationManager
@@ -38,6 +42,16 @@ data class PondDashboardData(
     val dailyMissions: List<DailyMissionProgress> = emptyList()
 )
 
+private data class LeaderboardSyncSnapshot(
+    val displayName: String,
+    val avatarConfig: Map<String, String>,
+    val duckCount: Long,
+    val uniqueSpeciesCount: Long,
+    val tradesCompleted: Long,
+    val grapeBalance: Long,
+    val isAdminAccount: Boolean
+)
+
 class PondViewModel(
     private val currentUserId: String,
     private val defaultDisplayName: String,
@@ -45,6 +59,7 @@ class PondViewModel(
     private val marketplaceRepository: MarketplaceRepository,
     private val eventRepository: EventRepository,
     private val missionRepository: MissionRepository,
+    private val ownerRepository: OwnerRepository,
     private val preferencesRepository: PreferencesRepository,
     private val notificationManager: PondNotificationManager,
     private val hatchDuckUseCase: HatchDuckUseCase = HatchDuckUseCase()
@@ -62,6 +77,32 @@ class PondViewModel(
     val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
 
     private val claimedInFlight = mutableSetOf<String>()
+    private var lastSyncedLeaderboard: LeaderboardSyncSnapshot? = null
+
+    val versionConfig: StateFlow<AppVersionConfig?> = collectorRepository.observeVersionConfig()
+        .catch { error ->
+            Log.w(TAG, "Error observing app version config", unwrapFirestoreError(error))
+            emit(null)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = null
+        )
+
+    val mandatoryUpdateConfig: StateFlow<AppVersionConfig?> = versionConfig
+        .map { config ->
+            if (config != null && BuildConfig.VERSION_CODE.toLong() < config.minRequiredVersionCode) {
+                config
+            } else {
+                null
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = null
+        )
 
     val uiState: StateFlow<UiState<PondDashboardData>> = combine(
         collectorRepository.observeProfile(currentUserId),
@@ -95,8 +136,54 @@ class PondViewModel(
             collectorRepository.ensureInitialized(currentUserId, defaultDisplayName)
             eventRepository.ensureSeededEvents()
             missionRepository.ensureDailyMissionsInitialized(currentUserId, todayDateKey)
+            collectorRepository.ensureVersionConfigSeeded(
+                currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                currentVersionName = BuildConfig.VERSION_NAME
+            )
         }
         observeClaimsAndNotifications()
+        observeLeaderboardSync()
+    }
+
+    private fun observeLeaderboardSync() {
+        viewModelScope.launch {
+            combine(
+                uiState,
+                ownerRepository.observeIsOwner(currentUserId)
+            ) { state, isOwner ->
+                val data = (state as? UiState.Success)?.data ?: return@combine null
+                val profile = data.profile ?: return@combine null
+                val ducks = data.ducks
+                val wallet = data.wallet
+                LeaderboardSyncSnapshot(
+                    displayName = profile.displayName.ifBlank { defaultDisplayName },
+                    avatarConfig = profile.avatarConfig,
+                    duckCount = ducks.size.toLong(),
+                    uniqueSpeciesCount = ducks.map { it.speciesId }.distinct().size.toLong(),
+                    tradesCompleted = profile.tradesCompleted,
+                    grapeBalance = wallet?.coins ?: 0L,
+                    isAdminAccount = isOwner
+                )
+            }
+                .catch { error -> unwrapFirestoreError(error) }
+                .collect { snapshot ->
+                    if (snapshot != null && snapshot != lastSyncedLeaderboard) {
+                        val res = collectorRepository.syncLeaderboardEntry(
+                            userId = currentUserId,
+                            displayName = snapshot.displayName,
+                            avatarConfig = DuckPalette.fromMap(snapshot.avatarConfig),
+                            duckCount = snapshot.duckCount,
+                            uniqueSpeciesCount = snapshot.uniqueSpeciesCount,
+                            tradesCompleted = snapshot.tradesCompleted,
+                            grapeBalance = snapshot.grapeBalance,
+                            isAdminAccount = snapshot.isAdminAccount
+                        )
+                        if (res.isSuccess) {
+                            lastSyncedLeaderboard = snapshot
+                        }
+                    }
+                }
+        }
     }
 
     private fun observeClaimsAndNotifications() {

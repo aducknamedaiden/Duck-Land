@@ -273,6 +273,31 @@ class OwnerViewModel(
         }
     }
 
+    fun updateVersionConfig(
+        minRequiredVersionCode: Long,
+        latestVersionCode: Long,
+        latestVersionName: String,
+        updateMessage: String,
+        storeUrl: String
+    ) {
+        viewModelScope.launch {
+            _isBusy.value = true
+            val res = ownerRepository.adminUpdateVersionConfig(
+                minRequiredVersionCode = minRequiredVersionCode,
+                latestVersionCode = latestVersionCode,
+                latestVersionName = latestVersionName,
+                updateMessage = updateMessage,
+                storeUrl = storeUrl
+            )
+            _isBusy.value = false
+            res.onSuccess {
+                _actionMessage.value = "Remote version gate updated (min code: $minRequiredVersionCode)!"
+            }.onFailure { err ->
+                _actionMessage.value = err.message ?: "Failed to update version config."
+            }
+        }
+    }
+
     fun clearMessage() {
         _actionMessage.value = null
     }

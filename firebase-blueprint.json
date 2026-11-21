@@ -223,12 +223,51 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "missionId", "dateKey", "title", "description", "progress", "target", "rewardCoins", "claimed", "createdAt", "updatedAt"]
+    },
+    "AppVersionConfig": {
+      "title": "AppVersionConfig",
+      "description": "Remote Android app version gate configuration used for mandatory update checks.",
+      "type": "object",
+      "properties": {
+        "minRequiredVersionCode": { "type": "integer" },
+        "latestVersionCode": { "type": "integer" },
+        "latestVersionName": { "type": "string" },
+        "updateMessage": { "type": "string" },
+        "storeUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["minRequiredVersionCode", "latestVersionCode", "latestVersionName", "updateMessage", "storeUrl", "updatedAt"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Public collector leaderboard snapshot synced from the collector's live duck collection, avatar, trades, and Grapes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatarConfig": { "type": "object" },
+        "duckCount": { "type": "integer" },
+        "uniqueSpeciesCount": { "type": "integer" },
+        "tradesCompleted": { "type": "integer" },
+        "grapeBalance": { "type": "integer" },
+        "isAdminAccount": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "avatarConfig", "duckCount", "uniqueSpeciesCount", "tradesCompleted", "grapeBalance", "isAdminAccount", "updatedAt"]
     }
   },
   "firestore": {
     "/admins/{userId}": {
       "schema": { "$ref": "#/entities/AdminGrant" },
       "description": "Owner/Admin registry unlocked with the owner key."
+    },
+    "/app_config/{configId}": {
+      "schema": { "$ref": "#/entities/AppVersionConfig" },
+      "description": "Remote app configuration documents such as mandatory update thresholds."
+    },
+    "/leaderboard/{userId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Public collector rankings across Duck Land."
     },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/CollectorProfile" },
