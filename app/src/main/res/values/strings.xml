@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Duck Land</string>
+    <string name="welcome_title">Welcome to Duck Land :)</string>
+    <string name="welcome_subtitle">Collect rare rubber ducks, customize your pond avatar, trade with friends, and shine in weekly pond events.</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="nav_pond">Pond</string>
+    <string name="nav_market">Market</string>
+    <string name="nav_events">Showcase</string>
+    <string name="nav_studio">Studio</string>
+    <string name="channel_trades_name">Trade &amp; Market Alerts</string>
+    <string name="channel_trades_desc">Instant alerts when collectors send, accept, or complete duck trades.</string>
+    <string name="channel_events_name">Weekly Pond Showcase</string>
+    <string name="channel_events_desc">Notifications for weekly duck showcase themes, votes, and bonus Grapes.</string>
+    <string name="empty_pond_title">Your pond is waiting!</string>
+    <string name="empty_pond_subtitle">Hatch a mystery egg or visit the marketplace to welcome your first rubber duck.</string>
+    <string name="empty_market_title">Quiet waves right now</string>
+    <string name="empty_market_subtitle">No ducks match that filter yet. List one of your ducks or check back soon!</string>
+    <string name="empty_events_title">Be the first splash!</string>
+    <string name="empty_events_subtitle">Submit one of your favorite ducks to kick off this week\'s pond showcase.</string>
+</resources>

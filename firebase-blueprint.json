@@ -1,0 +1,282 @@
+{
+  "entities": {
+    "CollectorProfile": {
+      "title": "CollectorProfile",
+      "description": "Public Duck Land collector showcase profile with modular duck avatar traits and moderation status (no PII).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "bio": { "type": "string" },
+        "avatarConfig": { "type": "object" },
+        "duckCount": { "type": "integer" },
+        "tradesCompleted": { "type": "integer" },
+        "banned": { "type": "boolean" },
+        "banReason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "avatarConfig", "duckCount", "tradesCompleted", "banned", "banReason", "createdAt", "updatedAt"]
+    },
+    "AdminGrant": {
+      "title": "AdminGrant",
+      "description": "Verified Duck Land Owner/Admin authorization record unlocked via owner key.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "ownerCode": { "type": "string" },
+        "grantedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "ownerCode", "grantedAt"]
+    },
+    "RedeemedCode": {
+      "title": "RedeemedCode",
+      "description": "One-time promo code redemption marker per collector.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "code": { "type": "string" },
+        "rewardSummary": { "type": "string" },
+        "redeemedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "code", "rewardSummary", "redeemedAt"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "Private Pond Coin wallet belonging to a collector.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "coins": { "type": "integer" },
+        "lastClaimId": { "type": "string" },
+        "lastClaimType": { "type": "string", "enum": ["none", "daily", "sale", "trade_accept", "trade_refund", "promo", "mission", "showcase_vote", "admin_grant"] },
+        "lastDailyClaimAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "coins", "lastClaimId", "lastClaimType", "createdAt", "updatedAt"]
+    },
+    "RubberDuck": {
+      "title": "RubberDuck",
+      "description": "Collectible digital rubber duck instance owned by a collector.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "speciesId": { "type": "string" },
+        "name": { "type": "string" },
+        "rarity": { "type": "string", "enum": ["common", "rare", "epic", "legendary"] },
+        "serialNumber": { "type": "integer" },
+        "palette": { "type": "object" },
+        "listed": { "type": "boolean" },
+        "listingId": { "type": "string" },
+        "lastTradeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "speciesId", "name", "rarity", "serialNumber", "palette", "listed", "listingId", "lastTradeId", "createdAt", "updatedAt"]
+    },
+    "MarketplaceListing": {
+      "title": "MarketplaceListing",
+      "description": "Public duck listing on the Duck Land marketplace.",
+      "type": "object",
+      "properties": {
+        "sellerId": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "sellerAvatar": { "type": "object" },
+        "buyerId": { "type": "string" },
+        "duckId": { "type": "string" },
+        "duckName": { "type": "string" },
+        "duckSpeciesId": { "type": "string" },
+        "duckRarity": { "type": "string", "enum": ["common", "rare", "epic", "legendary"] },
+        "duckSerialNumber": { "type": "integer" },
+        "duckPalette": { "type": "object" },
+        "askingCoins": { "type": "integer" },
+        "wantsTrade": { "type": "boolean" },
+        "desiredRarity": { "type": "string", "enum": ["any", "common", "rare", "epic", "legendary"] },
+        "status": { "type": "string", "enum": ["active", "sold", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sellerId", "sellerName", "sellerAvatar", "buyerId", "duckId", "duckName", "duckSpeciesId", "duckRarity", "duckSerialNumber", "duckPalette", "askingCoins", "wantsTrade", "desiredRarity", "status", "createdAt", "updatedAt"]
+    },
+    "TradeOffer": {
+      "title": "TradeOffer",
+      "description": "Direct duck-for-duck trade offer between two collectors.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "listingId": { "type": "string" },
+        "offeredDuckId": { "type": "string" },
+        "offeredDuckName": { "type": "string" },
+        "offeredDuckRarity": { "type": "string" },
+        "offeredDuckPalette": { "type": "object" },
+        "requestedDuckId": { "type": "string" },
+        "requestedDuckName": { "type": "string" },
+        "requestedDuckRarity": { "type": "string" },
+        "requestedDuckPalette": { "type": "object" },
+        "offeredCoins": { "type": "integer" },
+        "note": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "senderName", "recipientId", "recipientName", "participantIds", "listingId", "offeredDuckId", "offeredDuckName", "offeredDuckRarity", "offeredDuckPalette", "requestedDuckId", "requestedDuckName", "requestedDuckRarity", "requestedDuckPalette", "offeredCoins", "note", "status", "createdAt", "updatedAt"]
+    },
+    "CoinClaim": {
+      "title": "CoinClaim",
+      "description": "Escrowed sale coin claims and trade refunds.",
+      "type": "object",
+      "properties": {
+        "recipientId": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "sourceType": { "type": "string", "enum": ["listing_sale", "trade_refund", "showcase_vote_reward"] },
+        "eventId": { "type": "string" },
+        "amount": { "type": "integer" },
+        "claimed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipientId", "sourceId", "sourceType", "amount", "claimed", "createdAt", "updatedAt"]
+    },
+    "WeeklyEvent": {
+      "title": "WeeklyEvent",
+      "description": "Themed weekly Duck Land showcase event.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "themeTag": { "type": "string" },
+        "description": { "type": "string" },
+        "bonusRarity": { "type": "string" },
+        "active": { "type": "boolean" },
+        "weekNumber": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "themeTag", "description", "bonusRarity", "active", "weekNumber", "createdAt", "updatedAt"]
+    },
+    "EventEntry": {
+      "title": "EventEntry",
+      "description": "Collector duck entry showcased inside a weekly event.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "ownerDisplayName": { "type": "string" },
+        "ownerAvatar": { "type": "object" },
+        "duckId": { "type": "string" },
+        "duckName": { "type": "string" },
+        "duckSpeciesId": { "type": "string" },
+        "duckRarity": { "type": "string" },
+        "duckPalette": { "type": "object" },
+        "caption": { "type": "string" },
+        "voteCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventId", "userId", "ownerDisplayName", "ownerAvatar", "duckId", "duckName", "duckSpeciesId", "duckRarity", "duckPalette", "caption", "voteCount", "createdAt", "updatedAt"]
+    },
+    "EventVote": {
+      "title": "EventVote",
+      "description": "Per-user vote marker enforcing 1 vote per user per event entry.",
+      "type": "object",
+      "properties": {
+        "voterId": { "type": "string" },
+        "entryId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["voterId", "entryId", "createdAt"]
+    },
+    "PondNotification": {
+      "title": "PondNotification",
+      "description": "User-scoped notification record for trade offers, sales, events, and owner announcements.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["trade_received", "trade_accepted", "trade_declined", "listing_sold", "event_started", "showcase_vote", "admin_announcement"] },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "title", "body", "referenceId", "read", "createdAt"]
+    },
+    "DailyMissionProgress": {
+      "title": "DailyMissionProgress",
+      "description": "Per-day progress and Grape reward claim state for a collector's daily pond mission.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "missionId": { "type": "string", "enum": ["visit_pond", "hatch_egg", "trade_duck", "cheer_event"] },
+        "dateKey": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "progress": { "type": "integer" },
+        "target": { "type": "integer" },
+        "rewardCoins": { "type": "integer" },
+        "claimed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "missionId", "dateKey", "title", "description", "progress", "target", "rewardCoins", "claimed", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminGrant" },
+      "description": "Owner/Admin registry unlocked with the owner key."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/CollectorProfile" },
+      "description": "Public collector profiles keyed by Auth UID."
+    },
+    "/users/{userId}/redeemed_codes/{codeId}": {
+      "schema": { "$ref": "#/entities/RedeemedCode" },
+      "description": "One-time promo code redemptions per collector."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/PondNotification" },
+      "description": "Private real-time notifications for trades, sales, events, and owner announcements."
+    },
+    "/users/{userId}/daily_missions/{missionDocId}": {
+      "schema": { "$ref": "#/entities/DailyMissionProgress" },
+      "description": "Private daily pond mission progress and Grape reward claim states keyed by date and missionId."
+    },
+    "/wallets/{userId}": {
+      "schema": { "$ref": "#/entities/Wallet" },
+      "description": "Private Pond Coin balances keyed by Auth UID."
+    },
+    "/ducks/{duckId}": {
+      "schema": { "$ref": "#/entities/RubberDuck" },
+      "description": "Collectible rubber duck instances with atomic trade/sale ownership rules."
+    },
+    "/marketplace_listings/{listingId}": {
+      "schema": { "$ref": "#/entities/MarketplaceListing" },
+      "description": "Public Duck Marketplace listings."
+    },
+    "/trade_offers/{tradeId}": {
+      "schema": { "$ref": "#/entities/TradeOffer" },
+      "description": "Peer-to-peer duck trade offers between two collectors."
+    },
+    "/coin_claims/{claimId}": {
+      "schema": { "$ref": "#/entities/CoinClaim" },
+      "description": "Escrowed sale coin claims and trade refunds."
+    },
+    "/weekly_events/{eventId}": {
+      "schema": { "$ref": "#/entities/WeeklyEvent" },
+      "description": "Weekly themed pond showcase events."
+    },
+    "/weekly_events/{eventId}/entries/{entryId}": {
+      "schema": { "$ref": "#/entities/EventEntry" },
+      "description": "Collector duck entries in a weekly event."
+    },
+    "/weekly_events/{eventId}/entries/{entryId}/votes/{voterId}": {
+      "schema": { "$ref": "#/entities/EventVote" },
+      "description": "One-per-user vote records for an event entry."
+    }
+  }
+}

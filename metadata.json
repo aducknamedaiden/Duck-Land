@@ -1,0 +1,6 @@
+{
+  "name": "Duck Land",
+  "description": "Social digital rubber duck collecting, trading marketplace, custom modular avatars, and weekly pond showcase events.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
